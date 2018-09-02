@@ -6,17 +6,58 @@ from werkzeug.exceptions import abort
 from auth import login_required
 from db import get_db
 
+from dateutil import tz
+
 bp = Blueprint('blog', __name__)
+
+
+def convert_time(posts):
+    post_list = []
+
+    from_zone = tz.tzutc()
+    to_zone = tz.tzlocal()
+
+    for post in posts:
+        count = 1
+        data_dict = {}
+        data_key = ['title', 'body', 'created', 'id', 'username']
+
+        utc = post[3]
+        utc = utc.replace(tzinfo=from_zone)
+        local_time = utc.astimezone(to_zone)
+        local_time = local_time.replace(tzinfo=None)
+
+        for key in data_key:
+            if key == 'created':
+                data_dict.update({
+                    key: local_time
+                })
+
+            else:
+                data_dict.update({
+                    key: post[count]
+                })
+
+            count += 1
+
+        post_list.append(data_dict)
+
+    return post_list
+
 
 @bp.route('/')
 def index():
     db = get_db()
+
     posts = db.execute(
         'SELECT p.id, title, body, created, author_id, username'
         ' FROM post p JOIN user u ON p.author_id = u.id'
         ' ORDER BY created DESC'
     ).fetchall()
-    return render_template('blog/index.html', posts=posts)
+
+    converted_posts = convert_time(posts)
+
+    return render_template('blog/index.html', posts=converted_posts)
 
 
 @bp.route('/create', methods=('GET', 'POST'))
@@ -32,6 +73,7 @@ def create():
 
         if error is not None:
             flash(error)
+
         else:
             db = get_db()
             db.execute(

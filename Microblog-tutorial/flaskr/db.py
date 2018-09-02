@@ -18,9 +18,9 @@ def init_db_command():
     print 'Initialized the database.'
     root_path = os.path.split(__file__)[0]
     db_path = os.path.join(root_path, 'instance/flaskr.sqlite')
-    db = sqlite3.connect(db_path)
 
     if not os.path.exists(db_path):
+        db = sqlite3.connect(db_path)
         cursor = db.cursor()
 
         schema_path = os.path.join(root_path, 'schema.sql')
