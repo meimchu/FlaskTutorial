@@ -1,8 +1,6 @@
 import sqlite3
-
-import click
+import os
 from flask import current_app, g
-from flask.cli import with_appcontext
 
 
 def get_db():
@@ -16,28 +14,29 @@ def get_db():
     return g.db
 
 
-def close_db(e=None):
-    db = g.pop('db', None)
-
-    if db is not None:
-        db.close()
-
-
-def init_db():
-    db = get_db()
-
-    with current_app.open_resource('schema.sql') as f:
-        db.executescript(f.read().decode('utf8'))
-
-
-@click.command('init-db')
-@with_appcontext
 def init_db_command():
-    """Clear the existing data and create new tables."""
-    init_db()
-    click.echo('Initialized the database.')
+    print 'Initialized the database.'
+    root_path = os.path.split(__file__)[0]
+    db_path = os.path.join(root_path, 'instance/flaskr.sqlite')
+    db = sqlite3.connect(db_path)
 
+    if not os.path.exists(db_path):
+        cursor = db.cursor()
 
-def init_app(app):
-    app.teardown_appcontext(close_db)
-    app.cli.add_command(init_db_command)
+        schema_path = os.path.join(root_path, 'schema.sql')
+
+        sq_list = []
+        sq_command = ''
+        with open(schema_path, 'r') as f:
+            for line in f:
+                if line.endswith(';\n') or line.endswith(';'):
+                    sq_command += line
+                    sq_command = sq_command.replace('\n', '')
+                    sq_list.append(sq_command)
+                    sq_command = ''
+
+                else:
+                    sq_command += line
+
+        for i in sq_list:
+            cursor.execute(i)

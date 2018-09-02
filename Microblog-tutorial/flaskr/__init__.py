@@ -30,7 +30,7 @@ def create_app(test_config=None):
         return 'Hello, World!'
 
     import db
-    db.init_app(app)
+    db.init_db_command()
 
     import auth
     app.register_blueprint(auth.bp)
